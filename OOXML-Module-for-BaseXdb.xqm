@@ -3,27 +3,21 @@
  : Standard ECMA-376
  : The Office Open XML File Formats [Office Open XML Workbook] Library for BaseX 8.4+
  : --------------------------------
-
  : Copyright (C) 2016 Eliúd Santiago Meza y Rivera 
  : email: eliud.meza@gmail.com
  :        eliud.meza@outlook.com
-
  : This library is free software; you can redistribute it and/or
  : modify it under the terms of the GNU Lesser General Public
  : License as published by the Free Software Foundation; either
  : version 2.1 of the License.
-
  : This library is distributed in the hope that it will be useful,
  : but WITHOUT ANY WARRANTY; without even the implied warranty of
  : MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  : Lesser General Public License for more details.
-
  : You should have received a copy of the GNU Lesser General Public
  : License along with this library; if not, write to the Free Software
  : Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
  : For more information on the FunctX XQuery library, contact contrib@functx.com.
-
  : @version 1.0
  : @see     ...
  :) 
@@ -32,6 +26,7 @@ xquery version "3.1";
 module namespace xlsx = 'http://basex.org/modules/ECMA-376/spreadsheetml';
 (:OfficeOpenXML-Workbook:)
 import module namespace file = "http://expath.org/ns/file";
+(:import module namespace functx = "http://www.functx.com";:)
 
 declare namespace xlsx-Content-Types = "http://schemas.openxmlformats.org/package/2006/content-types"; 
 declare namespace xlsx-Core-Properties = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"; 
@@ -58,7 +53,8 @@ declare function xlsx:get-file(
          element error_module{$err:module},
          element error_line_number{$err:line-number},
          element error_column_number{$err:column-number},
-         element error_additional{$err:additional}      
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-file' }
       }
    }
 };
@@ -66,7 +62,8 @@ declare function xlsx:get-file(
 declare function xlsx:get-sheets(
    $file as xs:base64Binary
 ) as element()? {
-   element sheets {
+  try {
+    element sheets {
       for $s in fn:parse-xml(
          archive:extract-text($file,"xl/workbook.xml")
       )/descendant::xlsx-spreadsheetml:sheet 
@@ -74,7 +71,19 @@ declare function xlsx:get-sheets(
          element sheet {
             $s/@name
          }
-   }
+    }
+  } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-sheets' }
+      }
+  }
 };
 
 declare function xlsx:get-Workbook-Relationships(
@@ -92,23 +101,41 @@ declare function xlsx:get-rId-worksheet(
    $file  as xs:base64Binary, 
    $sheet as xs:string
 ) as xs:string* {
-   let $rs:= fn:parse-xml(
+  try {
+    let $rs:= fn:parse-xml(
       archive:extract-text(
          $file,"xl/workbook.xml")
       )/descendant::xlsx-spreadsheetml:sheets
        /descendant::xlsx-spreadsheetml:sheet
           [@name = $sheet]/attribute::*[name(.) = 'r:id']
-   return data($rs)   
+    return data($rs)   
+  }  catch * {
+    let $a:= ''
+    return data($a)
+  }
 };
 
 declare function xlsx:get-sharedStrings(
    $file as xs:base64Binary
 ) as item()* {
-   let $ss := fn:parse-xml(
+  try {
+    let $ss := fn:parse-xml(
       archive:extract-text(
          $file,"xl/sharedStrings.xml")
       )/descendant::xlsx-spreadsheetml:t
-   return $ss
+    return $ss
+  } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-sharedStrings' }
+      }
+  }
 };
 
 declare function xlsx:get-xml-path-worksheet(
@@ -145,10 +172,21 @@ declare function xlsx:get-worksheet-data(
          element error_module{$err:module},
          element error_line_number{$err:line-number},
          element error_column_number{$err:column-number},
-         element error_additional{$err:additional}      
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-worksheet-data' }
       }      
    }
 };
+
+declare function xlsx:get-cell(
+  $file as xs:string,
+  $sheet as xs:string,
+  $cell as xs:string
+) as item()* {
+  let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
+  return $sheet-data/descendant::xlsx-spreadsheetml:c[@r=fn:upper-case($cell)]
+};
+
 
 declare function xlsx:get-cell-value(
    $file as xs:string,
@@ -164,7 +202,7 @@ declare function xlsx:get-cell-value(
                "xl/" || xlsx:get-xml-path-worksheet($f,$sheet)
             )
          )/descendant::xlsx-spreadsheetml:sheetData
-          /descendant::xlsx-spreadsheetml:c[@r=$cell]
+          /descendant::xlsx-spreadsheetml:c[@r=fn:upper-case($cell)]
          return
             if ( fn:empty($rs/@t) )
             then (
@@ -183,7 +221,8 @@ declare function xlsx:get-cell-value(
          element error_module{$err:module},
          element error_line_number{$err:line-number},
          element error_column_number{$err:column-number},
-         element error_additional{$err:additional}      
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-worksheet-data' }
       }      
    }
 };
@@ -200,7 +239,7 @@ declare %updating function
       else replace value of node $ea with $av
    };
    
-declare %updating function xlsx:set-cell-value(
+declare %updating function xlsx:set-cell-value-original(
    $file  as xs:string,
    $sheet as xs:string,
    $cell  as xs:string,
@@ -229,11 +268,156 @@ declare %updating function xlsx:set-cell-value(
    return file:write-binary($file,$updated)
 };
 
+declare %updating function xlsx:set-cell-value(
+   $file  as xs:string,
+   $sheet as xs:string,
+   $cell  as xs:string,
+   $value as xs:anyAtomicType
+) {
+ if (($value instance of xs:byte) or
+     ($value instance of xs:short) or 
+     ($value instance of xs:int) or
+     ($value instance of xs:long) or 
+     ($value instance of xs:unsignedByte) or 
+     ($value instance of xs:unsignedShort) or 
+     ($value instance of xs:unsignedInt) or 
+     ($value instance of xs:unsignedLong) or 
+     ($value instance of xs:positiveInteger) or 
+     ($value instance of xs:nonNegativeInteger) or 
+     ($value instance of xs:negativeInteger) or 
+     ($value instance of xs:nonPositiveInteger) or 
+     ($value instance of xs:integer) or 
+     ($value instance of xs:decimal) or 
+     ($value instance of xs:float)     ) 
+ then ( let $a := 'es un numero' 
+        return xlsx:update-number-value($file,$sheet,$cell,$value) )
+ else 
+   if (($value instance of xs:string) or  
+       ($value instance of xs:normalizedString)  or
+       ($value instance of xs:token)  or
+       ($value instance of xs:language) or 
+       ($value instance of xs:NMTOKEN) or 
+       ($value instance of xs:Name) or 
+       ($value instance of xs:NCName) or 
+       ($value instance of xs:ID) or 
+       ($value instance of xs:IDREF) or 
+       ($value instance of xs:ENTITY)
+       
+      )
+   then  ( let $a := 'es un string'  return  xlsx:update-string-value($file,$sheet,$cell,$value))
+   else 
+      if ( $value instance of xs:date ) 
+      then ( let $a := 'es una fecha'  return xlsx:update-date-value($file,$sheet,$cell,$value) )
+      else ()
+(:
+     if ($value instance of xs:date )         
+     then (let $a := 'es una fecha'  return  xlsx:update-date-value($file,$sheet,$cell,$value)
+          )
+     else ( let $a := 'desconocido	'  return  $a)    
+:)
+};
+
+declare %updating
+function xlsx:update-string-value(
+   $file  as xs:string,
+   $sheet as xs:string,
+   $cell  as xs:string,
+   $value as xs:anyAtomicType
+) { 
+   let $f  := file:read-binary($file)
+   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+   let $entry := 
+      copy $rs := fn:parse-xml(
+                     archive:extract-text(
+                        $f,
+                        'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+                     )
+                  )
+      modify (replace node $rs/descendant::xlsx-spreadsheetml:sheetData
+                   /descendant::xlsx-spreadsheetml:c[@r=$cell]
+              with element c {
+                     attribute r { $cell },
+                     attribute t {"inlineStr"},
+                     element is {
+                       element t { $value }
+                     }
+                   }
+     )
+      return fn:serialize($rs)
+   let $updated := archive:update($f,$xml-sheet,$entry)
+   return file:write-binary($file,$updated)
+};
+
+declare %updating
+function xlsx:update-number-value(
+   $file  as xs:string,
+   $sheet as xs:string,
+   $cell  as xs:string,
+   $value as xs:anyAtomicType
+) { 
+   let $f  := file:read-binary($file)
+   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+   let $entry := 
+      copy $rs := fn:parse-xml(
+                     archive:extract-text(
+                        $f,
+                        'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+                     )
+                  )
+      modify replace value of node $rs/descendant::xlsx-spreadsheetml:sheetData
+                   /descendant::xlsx-spreadsheetml:c[@r=$cell]
+                   /descendant::xlsx-spreadsheetml:v
+       with $value
+      return fn:serialize($rs)
+   let $updated := archive:update($f,$xml-sheet,$entry)
+   return file:write-binary($file,$updated)
+};
+
+declare %updating
+function xlsx:update-date-value(
+   $file  as xs:string,
+   $sheet as xs:string,
+   $cell  as xs:string,
+   $value as xs:anyAtomicType
+) {
+   let $f  := file:read-binary($file)
+   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+   let $date_to_int := ( ( xs:date($value) + xs:dayTimeDuration('P2D') ) -
+                        xs:date('1900-01-01')) div xs:dayTimeDuration('P1D')
+   let $entry := 
+      copy $rs := fn:parse-xml(
+                     archive:extract-text(
+                        $f,
+                        'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+                     )
+                  )
+      modify (replace node $rs/descendant::xlsx-spreadsheetml:sheetData
+                   /descendant::xlsx-spreadsheetml:c[@r=$cell]
+              with element c {
+                      attribute r {$cell},
+                    (:attribute t {"d"},:) 
+                    (: according to Standard ECMA-376, ""t" attribute should 
+                       indicate this is a date value, but in excel 2010+ 
+                       simply don't recongnize ... :|   :)
+                      attribute s {"3"},
+                      element v { $date_to_int }
+                   } 
+                 (:<c r= "$cell" t="d">
+                      <v>$value + xs:dayTimeDuration("P2D")</v>
+                   </c>:)
+     )
+      return fn:serialize($rs)
+   let $updated := archive:update($f,$xml-sheet,$entry)
+   return file:write-binary($file,$updated)
+
+};
+
+
 (:
 declare %updating 
 function xlsx:set-cell-value(
    $file as xs:string,
-   $sheet as xs:string,
+   $sheet as xs:string,	
    $cell as xs:string,
    $new-value as xs:string
 ) {
@@ -326,13 +510,3 @@ declare function xlsx:worksheet-to-table(
       } 
    }
 };
-
-            (:
-            if ( fn:empty($rs/@t) )
-            then (
-               data($rs/descendant::xlsx-spreadsheetml:v)
-            )
-            else ( 
-               data(xlsx:get-sharedStrings($f)[position() = data($rs/descendant::xlsx-spreadsheetml:v)+1 ])
-            )
-            :)
