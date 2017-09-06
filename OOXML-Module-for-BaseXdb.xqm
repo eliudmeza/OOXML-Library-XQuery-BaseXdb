@@ -17,7 +17,7 @@
  : You should have received a copy of the GNU Lesser General Public
  : License along with this library; if not, write to the Free Software
  : Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- : For more information on the FunctX XQuery library, contact contrib@functx.com.
+ : For more information on the OOXML-Module-for-BaseXdb, contact eliud.meza@gmail.com.
  : @version 1.0
  : @see     ...
  :) 
@@ -46,7 +46,7 @@ declare function xlsx:get-file(
      let $f := file:read-binary($file)
      return $f    
    } catch * {
-      element error {
+      xs:base64Binary(element error {
          element error_code {$err:code},
          element error_description {$err:description},
          element error_value{$err:value},
@@ -55,7 +55,7 @@ declare function xlsx:get-file(
          element error_column_number{$err:column-number},
          element error_additional{$err:additional},
          element error_function_name { 'xlsx:get-file' }
-      }
+      })
    }
 };
 
@@ -122,7 +122,7 @@ declare function xlsx:get-sharedStrings(
     let $ss := fn:parse-xml(
       archive:extract-text(
          $file,"xl/sharedStrings.xml")
-      )/descendant::xlsx-spreadsheetml:t
+      )/descendant::xlsx-spreadsheetml:si
     return $ss
   } catch * {
       element error {
@@ -138,6 +138,74 @@ declare function xlsx:get-sharedStrings(
   }
 };
 
+declare function xlsx:get-style(
+  $file as xs:base64Binary
+) as item()* {
+  try {
+    let $ss := fn:parse-xml(
+      archive:extract-text(
+         $file,"xl/styles.xml")
+      )/styleSheet/descendant::*
+    return $ss
+  } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-style' }
+      }
+  }
+};
+
+(:Se necesita trabajar más ... // need more work ... :)
+declare function xlsx:set-style(
+  $file as xs:base64Binary,
+  $new-style as item()*
+) as item()* {
+  try {
+    element something{ "aa"}
+  } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:set-style' }
+      }
+    
+  }
+};
+
+declare function xlsx:get-calcChain(
+  $file as xs:base64Binary
+) as item()* {
+  try {
+    let $ss := fn:parse-xml(
+      archive:extract-text(
+         $file,"xl/calcChain.xml")
+      )/descendant::xlsx-spreadsheetml:t
+    return $ss
+  } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'get-calcChain' }
+      }
+  }
+};
+
 declare function xlsx:get-xml-path-worksheet(
    $file as xs:base64Binary, 
    $sheet as xs:string   
@@ -149,22 +217,22 @@ declare function xlsx:get-xml-path-worksheet(
    return data($xml-path/@Target) 
 };
 
-declare function xlsx:get-worksheet-data(
+declare function xlsx:get-worksheet-data (
    $file  as xs:string, 
    $sheet as xs:string
 ) as item()*{
-   try {
-      let $f := file:read-binary($file)
-      return (
-         let $rs := fn:parse-xml(
+  try {
+    let $f:= xlsx:get-file($file)
+    return (
+      let $rs := fn:parse-xml(
             archive:extract-text(
                $f,
                "xl/" || xlsx:get-xml-path-worksheet($f,$sheet)
             )
          )/descendant::xlsx-spreadsheetml:sheetData
          return $rs
-      )
-   } catch * {
+    )
+  }catch * {
       element error {
          element error_code {$err:code},
          element error_description {$err:description},
@@ -178,15 +246,72 @@ declare function xlsx:get-worksheet-data(
    }
 };
 
+declare function xlsx:get-row(
+  $file as xs:string,
+  $sheet as xs:string,
+  $row_number as xs:string
+) as item()* {
+  try {
+    let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
+    return $sheet-data/descendant::xlsx-spreadsheetml:row[@r=fn:upper-case($row_number)]
+  } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-row' }
+      }      
+   }
+};
+
+declare function xlsx:get-col(
+  $file as xs:string,
+  $sheet as xs:string,
+  $column as xs:string
+) as item()* {
+  try { 
+    let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
+    let $pattern := '^('|| fn:upper-case($column) ||')+\d'
+    return $sheet-data/descendant::xlsx-spreadsheetml:c[fn:matches(@r,$pattern)]
+    } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-col' }
+      }      
+   }
+};
+
 declare function xlsx:get-cell(
   $file as xs:string,
   $sheet as xs:string,
   $cell as xs:string
 ) as item()* {
-  let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
-  return $sheet-data/descendant::xlsx-spreadsheetml:c[@r=fn:upper-case($cell)]
+  try { 
+    let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
+    return $sheet-data/descendant::xlsx-spreadsheetml:c[@r=fn:upper-case($cell)]
+  } catch * {
+    element error {
+       element error_code {$err:code},
+       element error_description {$err:description},
+       element error_value{$err:value},
+       element error_module{$err:module},
+       element error_line_number{$err:line-number},
+       element error_column_number{$err:column-number},
+       element error_additional{$err:additional},
+       element error_function_name { 'xlsx:get-cell' }
+    }      
+ }  
 };
-
 
 declare function xlsx:get-cell-value(
    $file as xs:string,
@@ -194,25 +319,17 @@ declare function xlsx:get-cell-value(
    $cell as xs:string
 ) as item()* {
    try {
-      let $f := file:read-binary($file)
-      return (
-         let $rs := fn:parse-xml(
-            archive:extract-text(
-               $f,
-               "xl/" || xlsx:get-xml-path-worksheet($f,$sheet)
-            )
-         )/descendant::xlsx-spreadsheetml:sheetData
-          /descendant::xlsx-spreadsheetml:c[@r=fn:upper-case($cell)]
-         return
-            if ( fn:empty($rs/@t) )
-            then (
-               data($rs/descendant::xlsx-spreadsheetml:v)
-            )
-            else ( 
-               data(xlsx:get-sharedStrings($f)[position() = data($rs/descendant::xlsx-spreadsheetml:v)+1 ])
-            )
-         
-      )
+     let $c     := xlsx:get-cell($file,$sheet,$cell)
+     let $f     := xlsx:get-file($file)
+     return (
+       if ( fn:empty($c/@t) )
+       then ( data($c/descendant::xlsx-spreadsheetml:v) )
+       else ( 
+         let $ss := xlsx:get-sharedStrings($f)
+         let $c-pos := xs:integer(data($c/descendant::xlsx-spreadsheetml:v))+1
+         return data($ss[position() = $c-pos])
+         ) 
+       )
    } catch * {
       element error {
          element error_code {$err:code},
@@ -222,7 +339,7 @@ declare function xlsx:get-cell-value(
          element error_line_number{$err:line-number},
          element error_column_number{$err:column-number},
          element error_additional{$err:additional},
-         element error_function_name { 'xlsx:get-worksheet-data' }
+         element error_function_name { 'xlsx:get-cell-value' }
       }      
    }
 };
@@ -239,7 +356,7 @@ declare %updating function
       else replace value of node $ea with $av
    };
    
-declare %updating function xlsx:set-cell-value-original(
+declare updating function xlsx:set-cell-value-original(
    $file  as xs:string,
    $sheet as xs:string,
    $cell  as xs:string,
@@ -268,53 +385,77 @@ declare %updating function xlsx:set-cell-value-original(
    return file:write-binary($file,$updated)
 };
 
-declare %updating function xlsx:set-cell-value(
+declare %updating
+function xlsx:update-number-value(
    $file  as xs:string,
    $sheet as xs:string,
    $cell  as xs:string,
    $value as xs:anyAtomicType
 ) {
- if (($value instance of xs:byte) or
-     ($value instance of xs:short) or 
-     ($value instance of xs:int) or
-     ($value instance of xs:long) or 
-     ($value instance of xs:unsignedByte) or 
-     ($value instance of xs:unsignedShort) or 
-     ($value instance of xs:unsignedInt) or 
-     ($value instance of xs:unsignedLong) or 
-     ($value instance of xs:positiveInteger) or 
-     ($value instance of xs:nonNegativeInteger) or 
-     ($value instance of xs:negativeInteger) or 
-     ($value instance of xs:nonPositiveInteger) or 
-     ($value instance of xs:integer) or 
-     ($value instance of xs:decimal) or 
-     ($value instance of xs:float)     ) 
- then ( let $a := 'es un numero' 
-        return xlsx:update-number-value($file,$sheet,$cell,$value) )
- else 
-   if (($value instance of xs:string) or  
-       ($value instance of xs:normalizedString)  or
-       ($value instance of xs:token)  or
-       ($value instance of xs:language) or 
-       ($value instance of xs:NMTOKEN) or 
-       ($value instance of xs:Name) or 
-       ($value instance of xs:NCName) or 
-       ($value instance of xs:ID) or 
-       ($value instance of xs:IDREF) or 
-       ($value instance of xs:ENTITY)
-       
+  let $f  := xlsx:get-file($file)    
+  let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+  let $row_number := tokenize(fn:upper-case($cell),'[A-Z]')
+  let $row_number := $row_number[count($row_number)]
+  let $new-cell-node := element c {
+        attribute r {fn:upper-case($cell)},
+        element v {
+          $value
+        }
+      }
+  let $new-row-node := element row {
+        attribute r{$row_number},
+        $new-cell-node
+      }
+  let $entry := 
+    (:cell exists???:)
+    if ( fn:empty(xlsx:get-cell($file,$sheet,fn:upper-case($cell))) ) 
+    then ( 
+      (:row exists???:)  
+      if ( fn:empty(xlsx:get-row ($file,$sheet,$row_number)) )
+      then (
+        copy $rs := fn:parse-xml(
+                       archive:extract-text(
+                          $f,
+                          $xml-sheet
+                       )
+                    )
+        modify insert node $new-row-node
+               after $rs/descendant::xlsx-spreadsheetml:sheetData
+                        /descendant::xlsx-spreadsheetml:row
+                        [xs:integer(@r) lt xs:integer($row_number)]
+                        [last()]
+        return fn:serialize($rs)
       )
-   then  ( let $a := 'es un string'  return  xlsx:update-string-value($file,$sheet,$cell,$value))
-   else 
-      if ( $value instance of xs:date ) 
-      then ( let $a := 'es una fecha'  return xlsx:update-date-value($file,$sheet,$cell,$value) )
-      else ()
-(:
-     if ($value instance of xs:date )         
-     then (let $a := 'es una fecha'  return  xlsx:update-date-value($file,$sheet,$cell,$value)
-          )
-     else ( let $a := 'desconocido	'  return  $a)    
-:)
+      else(
+        copy $rs := fn:parse-xml(
+                       archive:extract-text(
+                          $f,
+                          $xml-sheet
+                       )
+                    )
+        modify insert node $new-cell-node
+               after $rs/descendant::xlsx-spreadsheetml:sheetData
+                        /descendant::xlsx-spreadsheetml:row
+                         [xs:integer(@r) eq xs:integer($row_number) ]
+                        /descendant::xlsx-spreadsheetml:c[@r lt $cell][last()]
+        return fn:serialize($rs)
+      )
+    ) 
+    else (
+      copy $rs := fn:parse-xml(
+                     archive:extract-text(
+                        $f,
+                        $xml-sheet
+                     )
+                  )
+      modify replace node $rs/descendant::xlsx-spreadsheetml:sheetData
+                   /descendant::xlsx-spreadsheetml:c[@r=$cell]
+              
+       with $new-cell-node
+      return fn:serialize($rs)
+    ) 
+  let $updated := archive:update($f,$xml-sheet,$entry)
+  return file:write-binary($file,$updated)
 };
 
 declare %updating
@@ -324,131 +465,148 @@ function xlsx:update-string-value(
    $cell  as xs:string,
    $value as xs:anyAtomicType
 ) { 
-   let $f  := file:read-binary($file)
-   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
-   let $entry := 
+(:nuevo:)
+  let $f  := xlsx:get-file($file)    
+  let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+  let $row_number := tokenize(fn:upper-case($cell),'[A-Z]')
+  let $row_number := $row_number[count($row_number)]
+  let $new-cell-node := element c {
+    attribute r { fn:upper-case($cell) },
+    attribute t {"inlineStr"},
+    element is {
+      element t { $value }
+    }
+  }
+  let $new-row-node := element row {
+        attribute r{$row_number},
+        $new-cell-node
+      }
+  let $entry := 
+    (:cell exists???:)
+    if ( fn:empty(xlsx:get-cell($file,$sheet,fn:upper-case($cell))) ) 
+    then ( 
+      (:row exists???:)  
+      if ( fn:empty(xlsx:get-row ($file,$sheet,$row_number)) )
+      then (
+        copy $rs := fn:parse-xml(
+                       archive:extract-text(
+                          $f,
+                          $xml-sheet
+                       )
+                    )
+        modify insert node $new-row-node
+               after $rs/descendant::xlsx-spreadsheetml:sheetData
+                        /descendant::xlsx-spreadsheetml:row
+                        [xs:integer(@r) lt xs:integer($row_number)]
+                        [last()]
+        return fn:serialize($rs)
+      )
+      else(
+        copy $rs := fn:parse-xml(
+                       archive:extract-text(
+                          $f,
+                          $xml-sheet
+                       )
+                    )
+        modify insert node $new-cell-node
+               after $rs/descendant::xlsx-spreadsheetml:sheetData
+                        /descendant::xlsx-spreadsheetml:row
+                         [xs:integer(@r) eq xs:integer($row_number) ]
+                        /descendant::xlsx-spreadsheetml:c[@r lt $cell][last()]
+        return fn:serialize($rs)
+      )
+    ) 
+    else (
       copy $rs := fn:parse-xml(
                      archive:extract-text(
                         $f,
-                        'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+                        $xml-sheet
                      )
                   )
-      modify (replace node $rs/descendant::xlsx-spreadsheetml:sheetData
+      modify replace node $rs/descendant::xlsx-spreadsheetml:sheetData
                    /descendant::xlsx-spreadsheetml:c[@r=$cell]
-              with element c {
-                     attribute r { $cell },
-                     attribute t {"inlineStr"},
-                     element is {
-                       element t { $value }
-                     }
-                   }
-     )
+              
+       with $new-cell-node
       return fn:serialize($rs)
-   let $updated := archive:update($f,$xml-sheet,$entry)
-   return file:write-binary($file,$updated)
+    ) 
+  let $updated := archive:update($f,$xml-sheet,$entry)
+  return file:write-binary($file,$updated)
+)
 };
 
-declare %updating
-function xlsx:update-number-value(
-   $file  as xs:string,
-   $sheet as xs:string,
-   $cell  as xs:string,
-   $value as xs:anyAtomicType
-) { 
-   let $f  := file:read-binary($file)
-   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
-   let $entry := 
-      copy $rs := fn:parse-xml(
-                     archive:extract-text(
-                        $f,
-                        'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
-                     )
-                  )
-      modify replace value of node $rs/descendant::xlsx-spreadsheetml:sheetData
-                   /descendant::xlsx-spreadsheetml:c[@r=$cell]
-                   /descendant::xlsx-spreadsheetml:v
-       with $value
-      return fn:serialize($rs)
-   let $updated := archive:update($f,$xml-sheet,$entry)
-   return file:write-binary($file,$updated)
-};
-
-declare %updating
+declare updating
 function xlsx:update-date-value(
    $file  as xs:string,
    $sheet as xs:string,
    $cell  as xs:string,
    $value as xs:anyAtomicType
 ) {
-   let $f  := file:read-binary($file)
-   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
-   let $date_to_int := ( ( xs:date($value) + xs:dayTimeDuration('P2D') ) -
-                        xs:date('1900-01-01')) div xs:dayTimeDuration('P1D')
-   let $entry := 
+(:new:)  
+  let $f  := xlsx:get-file($file)    
+  let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+  let $date_to_int:= ( ( xs:date($value) + xs:dayTimeDuration('P2D') ) -
+                         xs:date('1900-01-01')) div xs:dayTimeDuration('P1D')  
+  let $row_number := tokenize(fn:upper-case($cell),'[A-Z]')
+  let $row_number := $row_number[count($row_number)]
+  let $new-cell-node := element c {
+      attribute r {$cell},
+      attribute s {"3"},
+      element v { $date_to_int }
+    }
+  let $new-row-node := element row {
+        attribute r{$row_number},
+        $new-cell-node
+      }
+  let $entry := 
+    (:cell exists???:)
+    if ( fn:empty(xlsx:get-cell($file,$sheet,fn:upper-case($cell))) ) 
+    then ( 
+      (:row exists???:)  
+      if ( fn:empty(xlsx:get-row ($file,$sheet,$row_number)) )
+      then (
+        copy $rs := fn:parse-xml(
+                       archive:extract-text(
+                          $f,
+                          $xml-sheet
+                       )
+                    )
+        modify insert node $new-row-node
+               after $rs/descendant::xlsx-spreadsheetml:sheetData
+                        /descendant::xlsx-spreadsheetml:row
+                        [xs:integer(@r) lt xs:integer($row_number)]
+                        [last()]
+        return fn:serialize($rs)
+      )
+      else(
+        copy $rs := fn:parse-xml(
+                       archive:extract-text(
+                          $f,
+                          $xml-sheet
+                       )
+                    )
+        modify insert node $new-cell-node
+               after $rs/descendant::xlsx-spreadsheetml:sheetData
+                        /descendant::xlsx-spreadsheetml:row
+                         [xs:integer(@r) eq xs:integer($row_number) ]
+                        /descendant::xlsx-spreadsheetml:c[@r lt $cell][last()]
+        return fn:serialize($rs)
+      )
+    ) 
+    else (
       copy $rs := fn:parse-xml(
                      archive:extract-text(
                         $f,
-                        'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
+                        $xml-sheet
                      )
                   )
-      modify (replace node $rs/descendant::xlsx-spreadsheetml:sheetData
+      modify replace node $rs/descendant::xlsx-spreadsheetml:sheetData
                    /descendant::xlsx-spreadsheetml:c[@r=$cell]
-              with element c {
-                      attribute r {$cell},
-                    (:attribute t {"d"},:) 
-                    (: according to Standard ECMA-376, ""t" attribute should 
-                       indicate this is a date value, but in excel 2010+ 
-                       simply don't recongnize ... :|   :)
-                      attribute s {"3"},
-                      element v { $date_to_int }
-                   } 
-                 (:<c r= "$cell" t="d">
-                      <v>$value + xs:dayTimeDuration("P2D")</v>
-                   </c>:)
-     )
+              
+       with $new-cell-node
       return fn:serialize($rs)
-   let $updated := archive:update($f,$xml-sheet,$entry)
-   return file:write-binary($file,$updated)
-
-};
-
-
-(:
-declare %updating 
-function xlsx:set-cell-value(
-   $file as xs:string,
-   $sheet as xs:string,	
-   $cell as xs:string,
-   $new-value as xs:string
-) {
-   try {
-      let $f := file:read-binary($file)
-      return (
-         let $rs := fn:parse-xml(
-            archive:extract-text(
-               $f,
-               "xl/" || xlsx:get-xml-path-worksheet($f,$sheet)
-            )
-         )/descendant::xlsx-spreadsheetml:sheetData
-          /descendant::xlsx-spreadsheetml:c[@r=$cell]
-         return(
-            'valor cambiado',
-            replace value of node $rs/descendant::xlsx-spreadsheetml:v with $new-value            
-         )
-      )
-   } catch * {
-      element error {
-         element error_code {$err:code},
-         element error_description {$err:description},
-         element error_value{$err:value},
-         element error_module{$err:module},
-         element error_line_number{$err:line-number},
-         element error_column_number{$err:column-number},
-         element error_additional{$err:additional}      
-      }      
-   }
-};
-:)
+    ) 
+  let $updated := archive:update($f,$xml-sheet,$entry)
+  return file:write-binary($file,$updated)
 
 declare function xlsx:worksheet-to-table(
    $file  as xs:string, 
