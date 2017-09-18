@@ -1,4 +1,5 @@
-#Module for BaseX 8.4+ to handle OOXML Workbooks [ECMA-376]
+# Module for BaseX 8.4+ to handle OOXML Workbooks [ECMA-376]
+===========================================================
 
 This module help to read data and make simples updates from XML Workbooks files [ECMA-376] for BaseX 8.4+
 
@@ -12,8 +13,8 @@ This module help to read data and make simples updates from XML Workbooks files 
  * Packages ...
  * Instal ...
  * Select the file "OOXML-Module-for-BaseXdb.xqm"
-##
-##Use
+
+## Use
 
 Use the example below 
 
