@@ -9,10 +9,10 @@ This module help to read data and make simples updates from XML Workbooks files 
     ```REPO INSTALL OOXML-Module-for-BaseXdb.xqm```
     
 2. via GUI:
- * Option
- * Packages ...
- * Instal ...
- * Select the file "OOXML-Module-for-BaseXdb.xqm"
+ > * Option
+ > * Packages ...
+ > * Instal ...
+ > * Select the file "OOXML-Module-for-BaseXdb.xqm"
 
 ## Use
 
@@ -32,7 +32,7 @@ xlsx:get-col('Libro1.xlsx','Hoja1','B')
 ... 
 
 (: Return the cells of a row :)
-xlsx:get-col('Libro1.xlsx','Hoja1','13')
+xlsx:get-row('Libro1.xlsx','Hoja1','13')
 
 ... 
 
