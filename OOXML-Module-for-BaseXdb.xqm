@@ -1,7 +1,7 @@
 (:
  : --------------------------------
+ : The Office Open XML File Formats [Office Open XML Workbook] XQuery Library for BaseX 8.4+
  : Standard ECMA-376
- : The Office Open XML File Formats [Office Open XML Workbook] Library for BaseX 8.4+
  : --------------------------------
  : Copyright (C) 2016 Eliúd Santiago Meza y Rivera 
  : email: eliud.meza@gmail.com
@@ -17,7 +17,7 @@
  : You should have received a copy of the GNU Lesser General Public
  : License along with this library; if not, write to the Free Software
  : Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- : For more information on the FunctX XQuery library, contact contrib@functx.com.
+ : For more information on the OOXML XQuery Library for BaseX, contact eliud.meza@gmail.com.
  : @version 1.0
  : @see     ...
  :) 
