@@ -17,7 +17,7 @@
  : You should have received a copy of the GNU Lesser General Public
  : License along with this library; if not, write to the Free Software
  : Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- : For more information on the OOXML-Module-for-BaseXdb, contact eliud.meza@gmail.com.
+ : For more information on the FunctX XQuery library, contact contrib@functx.com.
  : @version 1.0
  : @see     ...
  :) 
@@ -38,7 +38,9 @@ declare namespace xlsx-sharedStrings = "http://schemas.openxmlformats.org/office
 declare namespace xlsx-x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac";
 declare namespace xlsx-mc="http://schemas.openxmlformats.org/markup-compatibility/2006";
 
-
+(: ---------
+Return a binary representation of the workbook file...
+--------- :)
 declare function xlsx:get-file(
    $file as xs:string
 ) as xs:base64Binary {
@@ -59,6 +61,9 @@ declare function xlsx:get-file(
    }
 };
 
+(: ---------
+Return a element containing the names of the worksheet of the workbook
+--------- :)
 declare function xlsx:get-sheets(
    $file as xs:base64Binary
 ) as element()? {
@@ -86,6 +91,9 @@ declare function xlsx:get-sheets(
   }
 };
 
+(: ---------
+Returns the Relationships elements contained in the workbook
+--------- :)
 declare function xlsx:get-Workbook-Relationships(
    $file as xs:base64Binary
 ) as item()*  {
@@ -97,6 +105,9 @@ declare function xlsx:get-Workbook-Relationships(
    return $rs
 };
 
+(: ---------
+Return a string of the id of the worksheet
+--------- :)
 declare function xlsx:get-rId-worksheet(
    $file  as xs:base64Binary, 
    $sheet as xs:string
@@ -115,6 +126,9 @@ declare function xlsx:get-rId-worksheet(
   }
 };
 
+(: ---------
+Returns the Shared-String elements contained in the workbook
+--------- :)
 declare function xlsx:get-sharedStrings(
    $file as xs:base64Binary
 ) as item()* {
@@ -138,6 +152,9 @@ declare function xlsx:get-sharedStrings(
   }
 };
 
+(: ---------
+Returns the style elements contained in the workbook
+--------- :)
 declare function xlsx:get-style(
   $file as xs:base64Binary
 ) as item()* {
@@ -183,6 +200,9 @@ declare function xlsx:set-style(
   }
 };
 
+(: ---------
+Returns the Calc-Chain contained in the workbook
+--------- :)
 declare function xlsx:get-calcChain(
   $file as xs:base64Binary
 ) as item()* {
@@ -206,6 +226,10 @@ declare function xlsx:get-calcChain(
   }
 };
 
+
+(: ---------
+Returns the xml path of the worksheet contained in the book
+--------- :)
 declare function xlsx:get-xml-path-worksheet(
    $file as xs:base64Binary, 
    $sheet as xs:string   
@@ -217,6 +241,9 @@ declare function xlsx:get-xml-path-worksheet(
    return data($xml-path/@Target) 
 };
 
+(: ---------
+Returns the content of the worksheet 
+--------- :)
 declare function xlsx:get-worksheet-data (
    $file  as xs:string, 
    $sheet as xs:string
@@ -246,6 +273,9 @@ declare function xlsx:get-worksheet-data (
    }
 };
 
+(: ---------
+Returns the content of a specified row in the worksheet
+--------- :)
 declare function xlsx:get-row(
   $file as xs:string,
   $sheet as xs:string,
@@ -268,6 +298,9 @@ declare function xlsx:get-row(
    }
 };
 
+(: ---------
+Returns the content of a specified column in the worksheet
+--------- :)
 declare function xlsx:get-col(
   $file as xs:string,
   $sheet as xs:string,
@@ -291,6 +324,9 @@ declare function xlsx:get-col(
    }
 };
 
+(: ---------
+Returns the cell element specified in the worksheet
+--------- :)
 declare function xlsx:get-cell(
   $file as xs:string,
   $sheet as xs:string,
@@ -313,6 +349,9 @@ declare function xlsx:get-cell(
  }  
 };
 
+(: ---------
+Returns the cell value specified in the worksheet
+--------- :)
 declare function xlsx:get-cell-value(
    $file as xs:string,
    $sheet as xs:string,
@@ -356,7 +395,10 @@ declare %updating function
       else replace value of node $ea with $av
    };
    
-declare updating function xlsx:set-cell-value-original(
+(: ---------
+Update the value of the cell --- original function
+--------- :)
+   declare updating function xlsx:set-cell-value-original(
    $file  as xs:string,
    $sheet as xs:string,
    $cell  as xs:string,
@@ -385,6 +427,9 @@ declare updating function xlsx:set-cell-value-original(
    return file:write-binary($file,$updated)
 };
 
+(: ---------
+Update the number value of the cell
+--------- :)
 declare %updating
 function xlsx:update-number-value(
    $file  as xs:string,
@@ -458,6 +503,9 @@ function xlsx:update-number-value(
   return file:write-binary($file,$updated)
 };
 
+(: ---------
+Update the string value of the cell
+--------- :)
 declare %updating
 function xlsx:update-string-value(
    $file  as xs:string,
@@ -465,7 +513,6 @@ function xlsx:update-string-value(
    $cell  as xs:string,
    $value as xs:anyAtomicType
 ) { 
-(:nuevo:)
   let $f  := xlsx:get-file($file)    
   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
   let $row_number := tokenize(fn:upper-case($cell),'[A-Z]')
@@ -531,9 +578,11 @@ function xlsx:update-string-value(
     ) 
   let $updated := archive:update($f,$xml-sheet,$entry)
   return file:write-binary($file,$updated)
-)
 };
 
+(: ---------
+Update the date value of the cell
+--------- :)
 declare updating
 function xlsx:update-date-value(
    $file  as xs:string,
@@ -541,7 +590,6 @@ function xlsx:update-date-value(
    $cell  as xs:string,
    $value as xs:anyAtomicType
 ) {
-(:new:)  
   let $f  := xlsx:get-file($file)    
   let $xml-sheet := 'xl/' || xlsx:get-xml-path-worksheet($f,$sheet)
   let $date_to_int:= ( ( xs:date($value) + xs:dayTimeDuration('P2D') ) -
@@ -607,7 +655,59 @@ function xlsx:update-date-value(
     ) 
   let $updated := archive:update($f,$xml-sheet,$entry)
   return file:write-binary($file,$updated)
+};
 
+(: ---------
+Update the value of the cell
+--------- :)
+declare updating function xlsx:set-cell-value(
+   $file  as xs:string,
+   $sheet as xs:string,
+   $cell  as xs:string,
+   $value as xs:anyAtomicType
+) {
+ if (($value instance of xs:byte) or
+     ($value instance of xs:short) or 
+     ($value instance of xs:int) or
+     ($value instance of xs:long) or 
+     ($value instance of xs:unsignedByte) or 
+     ($value instance of xs:unsignedShort) or 
+     ($value instance of xs:unsignedInt) or 
+     ($value instance of xs:unsignedLong) or 
+     ($value instance of xs:positiveInteger) or 
+     ($value instance of xs:nonNegativeInteger) or 
+     ($value instance of xs:negativeInteger) or 
+     ($value instance of xs:nonPositiveInteger) or 
+     ($value instance of xs:integer) or 
+     ($value instance of xs:decimal) or 
+     ($value instance of xs:float)     ) 
+ then ( 
+   xlsx:update-number-value($file,$sheet,$cell,$value) )
+ else 
+   if (($value instance of xs:string) or  
+       ($value instance of xs:normalizedString)  or
+       ($value instance of xs:token)  or
+       ($value instance of xs:language) or 
+       ($value instance of xs:NMTOKEN) or 
+       ($value instance of xs:Name) or 
+       ($value instance of xs:NCName) or 
+       ($value instance of xs:ID) or 
+       ($value instance of xs:IDREF) or 
+       ($value instance of xs:ENTITY)
+       
+      )
+   then  ( 
+     xlsx:update-string-value($file,$sheet,$cell,$value) )
+   else 
+      if ( $value instance of xs:date ) 
+      then ( 
+        xlsx:update-date-value($file,$sheet,$cell,$value) )
+      else ()
+};
+
+(: ---------
+Export the worksheet data to an html table ...
+--------- :)
 declare function xlsx:worksheet-to-table(
    $file  as xs:string, 
    $sheet as xs:string
