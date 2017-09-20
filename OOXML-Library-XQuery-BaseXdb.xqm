@@ -75,14 +75,15 @@ declare function xlsx:get-file(
 
 (: ---------
 Return a element containing the names of the worksheet of the workbook
+2017-09-20: change param-type to string
 --------- :)
 declare function xlsx:get-sheets(
-   $file as xs:base64Binary
+   $file as xs:string
 ) as element()? {
   try {
     element sheets {
       for $s in fn:parse-xml(
-         archive:extract-text($file,"xl/workbook.xml")
+         archive:extract-text(xlsx:get-file($file),"xl/workbook.xml")
       )/descendant::xlsx-spreadsheetml:sheet 
       return 
          element sheet {
