@@ -45,4 +45,19 @@ xlsx:set-cell-value('Libro1.xlsx','Hoja1','B1',23.45)
 xlsx:worksheet-to-table('Libro1.xlsx','Hoja1')
 ```
 
+List of the current functions
+-----------------------------
 
+ * get-file: return a binary representation of the workbook file
+ * get-sheets: return a element "sheets" containing the name of the workseet of the workbook
+ * get-sharedStrings: return the Shared-String element contained in the workbook
+ * get-calcChain: Returns the Calc-Chain contained in the workbook
+ * get-worksheet-data: Returns the content of the worksheet 
+ * get-row: Returns the content of a specified row in the worksheet
+ * get-col: Returns the content of a specified column in the worksheet
+ * get-cell: Returns the cell element specified in the worksheet
+ * get-cell-value: Returns the cell value specified in the worksheet
+ * set-cell-value: Update the value of the cell
+ * worksheet-to-table: Export the worksheet data to an html table
+ 
+ 
