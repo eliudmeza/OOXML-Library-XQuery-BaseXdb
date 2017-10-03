@@ -56,8 +56,12 @@ List of the current functions
  * get-row: Returns the content of a specified row in the worksheet
  * get-col: Returns the content of a specified column in the worksheet
  * get-cell: Returns the cell element specified in the worksheet
- * get-cell-value: Returns the cell value specified in the worksheet
- * set-cell-value: Update the value of the cell
- * worksheet-to-table: Export the worksheet data to an html table
+ * get-cell-value: Returns the cell value specified in the worksheet (2017-oct-03: fix the date value representation )
+ * set-cell-value: Update the value of the cell (2017-oct-03: a big IF's replace with typeswitch )
+ * worksheet-to-table: Export the worksheet data to an html table (2017-oct-03: fix the date value representation)
+ * display-cell-value: return the correct format of the value of the cell
+ * format-value: return the correct format value based on the excel format-code (0 to 49)
+ 
+ 
  
  
