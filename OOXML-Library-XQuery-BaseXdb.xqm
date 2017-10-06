@@ -366,64 +366,79 @@ try {
 }         
 };
 
-(: ---------
-Display format of a value
---------- :)
-declare function xlsx:display-cell-value(
-   $c as item()*,
-   $style as item()*,
-   $fss as item()*
-) as item ()* {
-   if (empty($c/@t)) 
-      then (
-         xlsx:format-value(
-            string(data($c/descendant::xlsx-spreadsheetml:v)),
-            $style/@numFmtId cast as xs:integer)
-      ) 
-      else (
-         switch ( string(data($c/@t)) )  
-            case "b" (: boolean type:)
-               return $c/descendant::xlsx-spreadsheetml:v
-            case "d" (: date-time type:)
-               return
-                  xlsx:format-value(
-                     string(
+   try {
+      if (empty($c/@t)) 
+         then (
+            if ( empty($style)  )
+            then (
+               xlsx:format-value(
+                  string(data($c/descendant::xlsx-spreadsheetml:v)),
+                  0)
+            )
+            else (
+               xlsx:format-value(
+                  string(data($c/descendant::xlsx-spreadsheetml:v)),
+                  $style/@numFmtId cast as xs:integer)
+            )
+         ) 
+         else (
+            switch ( string(data($c/@t)) )  
+               case "b" (: boolean type:)
+                  return $c/descendant::xlsx-spreadsheetml:v
+               case "d" (: date-time type:)
+                  return
+                     xlsx:format-value(
+                        string(
+                           data(
+                              $c/descendant::xlsx-spreadsheetml:v
+                           )
+                        ),
+                        $style/@numFmtId cast as xs:integer
+                     )
+               case "e" (: error type:)
+                  return "Error"
+               case "inlineStr" (: In Line String type:)
+                  return 
+                     data (
+                        $c/descendant::xlsx-spreadsheetml:is/
+                        descendant::xlsx-spreadsheetml:t
+                     )
+               case "n" (: number type:)
+                  return
+                     xlsx:format-value(
+                        string(
+                           data(
+                              $c/descendant::xlsx-spreadsheetml:v
+                           )
+                        ),
+                        $style/@numFmtId cast as xs:integer
+                     )
+               case "s" 
+                  return 
+                     data ($fss[position() = 
                         data(
-                           $c/descendant::xlsx-spreadsheetml:v
-                        )
-                     ),
-                     $style/@numFmtId cast as xs:integer
-                  )
-            case "e" (: error type:)
-               return "Error"
-            case "inlineStr" (: In Line String type:)
-               return 
-                  data (
-                     $c/descendant::xlsx-spreadsheetml:is/
-                     descendant::xlsx-spreadsheetml:t
-                  )
-            case "n" (: number type:)
-               return
-                  xlsx:format-value(
-                     string(
-                        data(
-                           $c/descendant::xlsx-spreadsheetml:v
-                        )
-                     ),
-                     $style/@numFmtId cast as xs:integer
-                  )
-            case "s" 
-               return 
-                  data ($fss[position() = 
-                     data(
-                        $c/descendant::xlsx-spreadsheetml:v) 
-                        + 1]
-                     ) 
-            case "str"
-               return $c/descendant::xlsx-spreadsheetml:v
-            default return $c/descendant::xlsx-spreadsheetml:v
-         )   
-};
+                           $c/descendant::xlsx-spreadsheetml:v) 
+                           + 1]
+                        ) 
+               case "str"
+                  return $c/descendant::xlsx-spreadsheetml:v
+               default return $c/descendant::xlsx-spreadsheetml:v
+            )   
+   } catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_variable_cell {$c},
+         element error_variable_style {$style},
+         element error_variable_shared_string {$fss},
+         element error_function_name { 'xlsx:format-value' }
+      }    
+   } 
 
 (: ---------
 Returns the Calc-Chain contained in the workbook
