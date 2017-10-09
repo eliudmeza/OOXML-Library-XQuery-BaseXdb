@@ -275,8 +275,8 @@ try {
          return string(format-number($data cast as xs:double,'0%'))
       case 10 (: 0.00%:)
          return string(format-number($data cast as xs:double,'0.00%'))
-      case 11 (: 0.00E+00  yet ... :)
-         return $data
+      case 11 (: 0.00E+00  2017-oct-09 fixed ... :)
+         return format-number($data, '00.0e0') 
       case 12 (: # ?/? yet ... :)
          return xlsx:decimal-to-fraction ($data cast as xs:decimal)
       case 13 (: # ??/?? yet ... :)
