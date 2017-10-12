@@ -275,7 +275,7 @@ try {
          return string(format-number($data cast as xs:double,'0%'))
       case 10 (: 0.00%:)
          return string(format-number($data cast as xs:double,'0.00%'))
-      case 11 (: 0.00E+00  2017-oct-09 fixed ... :)
+      case 11 (: 0.00E+00  yet ... :)
          return format-number($data, '00.0e0') 
       case 12 (: # ?/? yet ... :)
          return xlsx:decimal-to-fraction ($data cast as xs:decimal)
@@ -366,6 +366,14 @@ try {
 }         
 };
 
+(: ---------
+Display format of a value
+--------- :)
+declare function xlsx:display-cell-value(
+   $c as item()*,
+   $style as item()*,
+   $fss as item()*
+) as item ()* {
    try {
       if (empty($c/@t)) 
          then (
@@ -439,6 +447,7 @@ try {
          element error_function_name { 'xlsx:format-value' }
       }    
    } 
+};
 
 (: ---------
 Returns the Calc-Chain contained in the workbook
@@ -586,6 +595,41 @@ declare function xlsx:get-cell(
        element error_column_number{$err:column-number},
        element error_additional{$err:additional},
        element error_function_name { 'xlsx:get-cell' }
+    }      
+ }  
+};
+
+(: ---------
+Returns all the cells element specified in the worksheet
+--------- :)
+declare function xlsx:get-cells(
+  $file as xs:string,
+  $sheet as xs:string
+) as item()* {
+  try { 
+      xlsx:get-worksheet-data($file,$sheet)/descendant::xlsx-spreadsheetml:c
+      (: element cells {
+         let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
+         return (
+            element c {
+               attribute r {},
+               attribute s {},
+               attribute span {},
+               element f {},
+               element v {}
+            }
+         )
+      } :)
+  } catch * {
+    element error {
+       element error_code {$err:code},
+       element error_description {$err:description},
+       element error_value{$err:value},
+       element error_module{$err:module},
+       element error_line_number{$err:line-number},
+       element error_column_number{$err:column-number},
+       element error_additional{$err:additional},
+       element error_function_name { 'xlsx:get-cells' }
     }      
  }  
 };
