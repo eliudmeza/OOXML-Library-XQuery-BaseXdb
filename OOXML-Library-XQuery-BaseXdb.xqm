@@ -479,7 +479,7 @@ declare %private function xlsx:get-calcChain(
 (: ---------
 Returns the xml path of the worksheet contained in the book
 --------- :)
-declare %private function xlsx:get-xml-path-worksheet(
+declare function xlsx:get-xml-path-worksheet(
    $file as xs:base64Binary, 
    $sheet as xs:string   
 ) as xs:string* {
@@ -606,21 +606,96 @@ declare function xlsx:get-cells(
   $file as xs:string,
   $sheet as xs:string
 ) as item()* {
-  try { 
-      xlsx:get-worksheet-data($file,$sheet)/descendant::xlsx-spreadsheetml:c
-      (: element cells {
-         let $sheet-data := xlsx:get-worksheet-data($file,$sheet)
-         return (
-            element c {
-               attribute r {},
-               attribute s {},
-               attribute span {},
-               element f {},
-               element v {}
-            }
-         )
-      } :)
-  } catch * {
+  try {
+    let $f:= xlsx:get-file($file)
+    return (
+      let $rs := fn:parse-xml(
+            archive:extract-text(
+               $f,
+               "xl/" || xlsx:get-xml-path-worksheet($f,$sheet)
+            )
+         )/descendant::xlsx-spreadsheetml:sheetData
+         /descendant::xlsx-spreadsheetml:c
+         return $rs
+    )
+  }catch * {
+      element error {
+         element error_code {$err:code},
+         element error_description {$err:description},
+         element error_value{$err:value},
+         element error_module{$err:module},
+         element error_line_number{$err:line-number},
+         element error_column_number{$err:column-number},
+         element error_additional{$err:additional},
+         element error_function_name { 'xlsx:get-cells' }
+      }      
+   }
+};
+
+
+(: ---------
+Returns all the cells element specified in a range
+--------- :)
+declare function xlsx:get-range(
+  $file as xs:string,
+  $sheet as xs:string,
+  $range as xs:string
+) as item()* {
+try {
+  (: let $file := 'Libro4.xlsx'
+  let $sheet := 'Hoja1'
+  let $range := '$A$1:$G$10' :)
+  let $range := fn:replace($range,'\$','')
+  let $a := tokenize($range,':')
+  let $pattern := '^('|| fn:upper-case('A') ||')+\d'
+  let $tokens := tokenize($range,':')
+  let $min-range-col := replace($tokens[1],'\d','')
+  let $min-range-row := substring-after($tokens[1],$min-range-col)
+  let $max-range-col := replace($tokens[2],'\d','')
+  let $max-range-row := substring-after($tokens[2],$max-range-col)
+  let $fstyle:= xlsx:get-style($file)
+  let $fss   := xlsx:get-sharedStrings(xlsx:get-file($file))
+  let $f:= xlsx:get-file($file)
+  return (
+    (: se debe hacer las validaciones de que las filas y columnas cuando esten
+       vacias...  :)
+    let $rs := fn:parse-xml(
+          archive:extract-text(
+             $f,
+             "xl/" || xlsx:get-xml-path-worksheet($f,$sheet)
+          )
+       )/descendant::xlsx-spreadsheetml:sheetData
+        /descendant::xlsx-spreadsheetml:row
+                   [xs:double(./@r) >= xs:double($min-range-row) and 
+                    xs:double(./@r) <= xs:double($max-range-row)]
+                   /descendant::xlsx-spreadsheetml:c
+                   [ matches(./@r,'^[' || $min-range-col || '-'
+                                       || $max-range-col || ']\d') ]
+    return (
+      element range {
+        element param {
+          element min-range-col {$min-range-col},
+          element min-range-row {$min-range-row},
+          element max-range-col {$max-range-col},
+          element max-range-row {$max-range-row}
+        },
+        $rs
+        (: for $c in $rs
+        let $style-Cell := $fstyle/descendant::xlsx-spreadsheetml:cellXfs/
+             descendant::xlsx-spreadsheetml:xf
+             [position() = (fn:number($c/@s) + 1)]
+        return element cell{
+          attribute id {$c/@r},
+          element value {
+            xlsx:display-cell-value($c,$style-Cell,$fss)  
+            
+          }
+          , $c     
+        } :)
+      }
+    )    
+  )
+} catch * {
     element error {
        element error_code {$err:code},
        element error_description {$err:description},
@@ -629,9 +704,9 @@ declare function xlsx:get-cells(
        element error_line_number{$err:line-number},
        element error_column_number{$err:column-number},
        element error_additional{$err:additional},
-       element error_function_name { 'xlsx:get-cells' }
+       element error_function_name { 'xlsx:get-range' }
     }      
- }  
+}
 };
 
 (: ---------
@@ -666,8 +741,6 @@ declare function xlsx:get-cell-value(
       }      
    }
 };
-
-
 
 declare %updating function 
    xlsx:upsert($e as element(), 
