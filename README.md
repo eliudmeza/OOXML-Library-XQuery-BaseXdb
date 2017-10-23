@@ -61,6 +61,7 @@ List of the current functions
  * worksheet-to-table: Export the worksheet data to an html table (2017-oct-03: fix the date value representation)
  * display-cell-value: return the correct format of the value of the cell
  * format-value: return the correct format value based on the excel format-code (0 to 49)
+ * get-range: return a range element containing the cell in the specified range
  
  
  
