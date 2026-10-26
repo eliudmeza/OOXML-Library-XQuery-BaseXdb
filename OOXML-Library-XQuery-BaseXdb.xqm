@@ -195,6 +195,24 @@ declare function xlsx:set-style(
 (: ---------
 Convert a date to int value for excel...
 --------- :)
+(: 
+  Excel 1900 Leap Year Bug
+  -------------------------
+  Excel (and Lotus 1-2-3 before it) incorrectly treats 1900 as a leap year.
+  For compatibility reasons, Microsoft still maintains this behavior in all 
+  current versions (including Microsoft 365 and Excel 2024).
+
+  - Serial 60 = 29-Feb-1900 (a date that never existed)
+  - All dates from 1-Mar-1900 onwards are shifted +1 day relative to the 
+    real Gregorian calendar.
+
+  Microsoft explicitly documents that it will not fix this bug because doing 
+  so would break compatibility with millions of existing spreadsheets 
+  (see: "Excel incorrectly assumes that the year 1900 is a leap year").
+
+  This module deliberately follows Excel’s date system to maximize 
+  compatibility with real-world files.
+:)
 declare %private function xlsx:date-to-int(
    $value as xs:string
 ) as xs:date {
